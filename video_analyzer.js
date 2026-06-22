@@ -338,7 +338,7 @@ ${transcript}
       console.error('Gemini video analysis failed. Falling back to local analysis.', err);
       // Fallback to local rule-based analysis
       const localResult = analyze(transcript, cvResult);
-      localResult.summary = `(Local Fallback) \${localResult.summary} (Reason: \${err.message})`;
+      localResult.summary = `(Local Fallback) ${localResult.summary} (Reason: ${err.message})`;
       return localResult;
     }
   }

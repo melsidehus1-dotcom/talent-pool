@@ -652,16 +652,6 @@ const App = (() => {
         `).join('')}
       </div>
 
-            <div class="score-item__keywords">
-              ${cat.matchedKeywords.length > 0
-                ? cat.matchedKeywords.map(kw => `<span class="keyword-tag">${escapeHtml(kw)}</span>`).join('')
-                : `<span style="font-size:11px;color:var(--text-muted);font-style:italic;">No keywords detected</span>`
-              }
-            </div>
-          </div>
-        `).join('')}
-      </div>
-
       <!-- Video Screening Stage -->
       ${(() => {
         if (!c.videoAnalysis) {
