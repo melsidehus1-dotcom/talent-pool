@@ -337,6 +337,60 @@ const App = (() => {
     document.getElementById('pasteText').value = '';
   }
 
+  function analyzeTextFromBookmarklet(text, sourceUrl) {
+    if (!text || text.trim().length < 20) {
+      toast('Could not extract candidate details from the page.', 'error');
+      return;
+    }
+
+    let platform = 'Glints';
+    if (sourceUrl.includes('linkedin.com')) {
+      platform = 'LinkedIn';
+    } else if (sourceUrl.includes('google.com')) {
+      platform = 'Google Drive';
+    } else if (sourceUrl) {
+      try {
+        platform = new URL(sourceUrl).hostname;
+      } catch (e) {}
+    }
+
+    const result = SkillAnalyzer.analyze(text);
+    result.id = generateId();
+    result.source = `${platform} (Bookmarklet)`;
+    result.fileName = null;
+    result.notes = `Screened directly via browser shortcut.\nSource URL: ${sourceUrl}`;
+    
+    if (sourceUrl) {
+      if (platform === 'LinkedIn') {
+        result.contact.linkedin = sourceUrl;
+      } else if (platform === 'Google Drive') {
+        result.contact.drive = sourceUrl;
+      } else {
+        result.contact.portfolio = sourceUrl;
+      }
+    }
+
+    const existing = candidates.find(c => c.name === result.name && c.name !== 'Unknown Candidate');
+    if (existing) {
+      toast(`Candidate "${result.name}" already screened. Updating entry.`, 'info');
+      candidates = candidates.filter(c => c.id !== existing.id);
+    }
+
+    candidates.push(result);
+    save();
+    
+    // Refresh table and dashboard
+    renderCandidateTable();
+    
+    // Switch to candidates tab to see results
+    switchTab('candidates');
+    
+    // Auto-open detail modal
+    showDetail(result.id);
+    
+    toast(`Successfully screened ${result.name}!`, 'success');
+  }
+
   // ── Render Analysis Result ────────────────────────────────
 
   function renderAnalysisResult(result) {
@@ -892,6 +946,29 @@ const App = (() => {
 
   function init() {
     load();
+
+    // Generate bookmarklet link
+    const bookmarkletLink = document.getElementById('bookmarkletLink');
+    if (bookmarkletLink) {
+      const origin = window.location.origin;
+      const code = `javascript:(function(){var t=document.body.innerText;var u=window.location.href;var w=window.open('${origin}');var timer=setInterval(function(){if(w.closed){clearInterval(timer);return;}w.postMessage({type:'SCREEN_CANDIDATE',text:t,source:u},'*');},500);window.addEventListener('message',function(e){if(e.data==='SCREEN_READY'){clearInterval(timer);}});})();`;
+      bookmarkletLink.href = code;
+      bookmarkletLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        alert('👉 Please drag this "Screen Candidate" button into your browser\'s Bookmarks bar, then click it when viewing a candidate\'s profile page on Glints or LinkedIn!');
+      });
+    }
+
+    // Listen for bookmarklet messages
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'SCREEN_CANDIDATE') {
+        const { text, source } = event.data;
+        if (event.source) {
+          event.source.postMessage('SCREEN_READY', event.origin);
+        }
+        analyzeTextFromBookmarklet(text, source);
+      }
+    });
 
     // Drop zone events
     const dropZone = document.getElementById('dropZone');

@@ -1380,3 +1380,123 @@ tbody tr:last-child td {
   background: rgba(245, 158, 11, 0.15);
 }
 
+/* ── Bookmarklet Shortcut Banner ────────────────────────────── */
+
+.shortcut-banner {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 32px;
+  backdrop-filter: blur(20px);
+  animation: fadeIn 0.5s ease;
+}
+
+[data-theme="light"] .shortcut-banner {
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: var(--shadow-sm);
+}
+
+.shortcut-banner__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  border-bottom: 1px solid var(--border-glass);
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+}
+
+.shortcut-banner__icon {
+  font-size: 28px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shortcut-banner__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.shortcut-banner__desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.bookmarklet-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  background: var(--gradient-primary);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none !important;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  transition: all var(--transition-normal);
+  cursor: grab;
+  border: none;
+}
+
+.bookmarklet-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+}
+
+.bookmarklet-btn:active {
+  cursor: grabbing;
+}
+
+.shortcut-banner__steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.shortcut-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.shortcut-step strong {
+  color: var(--text-primary);
+}
+
+.shortcut-step__num {
+  background: var(--bg-glass-hover);
+  border: 1px solid var(--border-glass);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--accent-purple);
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .shortcut-banner__steps {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+
