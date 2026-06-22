@@ -1207,7 +1207,7 @@ const App = (() => {
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropZone.classList.remove('drop-zone--active');
-      const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
       if (files.length === 0) {
         toast('Please drop PDF files only', 'error');
         return;
