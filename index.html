@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Smart candidate screening system for Fullstack Developer - Cloud & Email Infrastructure position. Upload CVs or paste profiles for instant fit analysis.">
+  <title>Talent Screener — Fullstack Developer Hiring</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+  <!-- PDF.js from Mozilla CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+</head>
+<body>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div class="app-container">
+
+    <!-- ── Header ──────────────────────────────────────────── -->
+    <header class="app-header">
+      <div class="app-header__brand">
+        <div class="app-header__logo">🎯</div>
+        <div>
+          <h1 class="app-header__title">Talent Screener</h1>
+          <div class="app-header__subtitle">Fullstack Developer · Cloud & Email Infrastructure</div>
+        </div>
+      </div>
+      <div class="app-header__actions">
+        <button class="btn" onclick="App.exportCSV()">📤 Export CSV</button>
+        <button class="btn btn--danger" onclick="App.clearAll()">🗑 Clear All</button>
+      </div>
+    </header>
+
+    <!-- ── Stats Dashboard ─────────────────────────────────── -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card__icon">📋</div>
+        <div class="stat-card__value" id="statTotal">0</div>
+        <div class="stat-card__label">Total Candidates</div>
+      </div>
+      <div class="stat-card stat-card--good">
+        <div class="stat-card__icon">✅</div>
+        <div class="stat-card__value" id="statGood">0</div>
+        <div class="stat-card__label">Good Fit</div>
+      </div>
+      <div class="stat-card stat-card--maybe">
+        <div class="stat-card__icon">⚠️</div>
+        <div class="stat-card__value" id="statMaybe">0</div>
+        <div class="stat-card__label">Maybe</div>
+      </div>
+      <div class="stat-card stat-card--not">
+        <div class="stat-card__icon">❌</div>
+        <div class="stat-card__value" id="statNot">0</div>
+        <div class="stat-card__label">Not Fit</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__icon">📊</div>
+        <div class="stat-card__value" id="statAvg">—</div>
+        <div class="stat-card__label">Average Score</div>
+      </div>
+    </div>
+
+    <!-- ── Tabs ────────────────────────────────────────────── -->
+    <div class="tabs">
+      <button class="tab tab--active" data-tab="upload">📄 Upload & Analyze</button>
+      <button class="tab" data-tab="candidates">📋 All Candidates</button>
+      <button class="tab" data-tab="compare">📈 Compare</button>
+    </div>
+
+    <!-- ── Section: Upload & Analyze ───────────────────────── -->
+    <div id="section-upload" class="section section--active">
+      <div class="upload-section">
+        <!-- PDF Drop Zone -->
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".pdf" multiple>
+          <div class="drop-zone__icon">📄</div>
+          <div class="drop-zone__title">Drop CV here</div>
+          <div class="drop-zone__hint">or click to browse · PDF files only · Multiple files supported</div>
+        </div>
+
+        <!-- Text Paste Zone -->
+        <div class="paste-zone">
+          <div class="paste-zone__header">
+            <span class="paste-zone__icon">📋</span>
+            <div>
+              <div class="paste-zone__title">Paste Profile Text</div>
+              <div class="paste-zone__hint">Copy from LinkedIn or Glints → paste here</div>
+            </div>
+          </div>
+          <textarea id="pasteText" placeholder="Open candidate's LinkedIn/Glints profile → Select All (Ctrl+A) → Copy (Ctrl+C) → Paste here (Ctrl+V)"></textarea>
+          <div class="paste-zone__actions">
+            <button class="btn btn--primary" id="analyzeTextBtn">🔍 Analyze</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analysis Results -->
+      <div id="analysisResults"></div>
+    </div>
+
+    <!-- ── Section: All Candidates ─────────────────────────── -->
+    <div id="section-candidates" class="section">
+      <div class="table-container">
+        <div class="table-header">
+          <div>
+            <span class="table-header__title">All Candidates</span>
+            <span class="table-header__count" id="tableCount">0 candidates</span>
+          </div>
+          <div class="table-header__actions">
+            <input type="text" class="table-search" id="tableSearch" placeholder="Search candidates...">
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th data-sort="name">Name ↕</th>
+              <th>Email</th>
+              <th data-sort="overallScore" class="sorted">Score ↕</th>
+              <th data-sort="verdict">Verdict ↕</th>
+              <th>Top Skills</th>
+              <th data-sort="source">Source ↕</th>
+              <th data-sort="date">Date ↕</th>
+            </tr>
+          </thead>
+          <tbody id="candidateTableBody">
+            <tr>
+              <td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">
+                No candidates analyzed yet. Upload a CV or paste profile text to get started.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Section: Compare ────────────────────────────────── -->
+    <div id="section-compare" class="section">
+      <div class="comparison-section">
+        <div class="comparison-section__header">
+          <div class="comparison-section__title">📈 Candidate Comparison</div>
+        </div>
+        <div class="comparison-candidates" id="comparisonToggles"></div>
+        <div class="radar-container">
+          <canvas id="radarCanvas"></canvas>
+        </div>
+        <div class="comparison-legend" id="comparisonLegend"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Detail Modal ──────────────────────────────────────── -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title">Candidate Detail</h2>
+        <button class="modal__close" onclick="App.closeModal()">✕</button>
+      </div>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <script src="analyzer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
