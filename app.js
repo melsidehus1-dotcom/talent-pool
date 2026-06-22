@@ -519,6 +519,10 @@ const App = (() => {
         case 'name': aVal = a.name; bVal = b.name; break;
         case 'overallScore': aVal = a.overallScore; bVal = b.overallScore; break;
         case 'verdict': aVal = a.verdict; bVal = b.verdict; break;
+        case 'videoScore': 
+          aVal = a.videoAnalysis ? a.videoAnalysis.overallScore : -1; 
+          bVal = b.videoAnalysis ? b.videoAnalysis.overallScore : -1; 
+          break;
         case 'date': aVal = a.analyzedAt; bVal = b.analyzedAt; break;
         case 'source': aVal = a.source; bVal = b.source; break;
         default: aVal = a.overallScore; bVal = b.overallScore;
@@ -534,7 +538,7 @@ const App = (() => {
     if (filtered.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">
+          <td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">
             ${candidates.length === 0 ? 'No candidates analyzed yet. Upload a CV or paste profile text to get started.' : 'No candidates match your search.'}
           </td>
         </tr>
@@ -552,12 +556,17 @@ const App = (() => {
         .map(cat => cat.icon)
         .join(' ');
 
+      const videoStageBadge = c.videoAnalysis && c.videoAnalysis.overallScore !== undefined
+        ? `<span class="td-video-badge td-video-badge--screened" onclick="event.stopPropagation(); App.showDetail('${c.id}')">📹 ${c.videoAnalysis.overallScore}%</span>`
+        : `<span class="td-video-badge td-video-badge--pending" onclick="event.stopPropagation(); App.showDetail('${c.id}')">➕ Add Video</span>`;
+
       return `
         <tr onclick="App.showDetail('${c.id}')">
           <td class="td-name">${escapeHtml(c.name)}</td>
           <td>${c.contact.email || '—'}</td>
           <td class="td-score td-score--${scoreClass}">${c.overallScore}%</td>
           <td><span class="td-verdict-badge td-verdict-badge--${c.verdictClass}">${c.verdict}</span></td>
+          <td>${videoStageBadge}</td>
           <td>${topSkills || '—'}</td>
           <td>${c.source}</td>
           <td>${date}</td>
@@ -643,6 +652,137 @@ const App = (() => {
         `).join('')}
       </div>
 
+            <div class="score-item__keywords">
+              ${cat.matchedKeywords.length > 0
+                ? cat.matchedKeywords.map(kw => `<span class="keyword-tag">${escapeHtml(kw)}</span>`).join('')
+                : `<span style="font-size:11px;color:var(--text-muted);font-style:italic;">No keywords detected</span>`
+              }
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Video Screening Stage -->
+      ${(() => {
+        if (!c.videoAnalysis) {
+          return `
+            <div class="video-stage-card">
+              <div class="video-stage-card__title">📹 Video Screening Stage</div>
+              <p style="font-size:12px; color:var(--text-secondary); margin-bottom:16px; line-height:1.5;">
+                Analyze the candidate's video presentation against the 4 key job requirements (AWS, SES, Cold Email, Linux Servers) and communication quality.
+              </p>
+              <div style="margin-bottom:12px;">
+                <label style="font-size:11px; font-weight:600; display:block; margin-bottom:6px; color:var(--text-secondary);">Video Presentation Link (Loom, Google Drive, etc.)</label>
+                <input type="text" id="modalVideoUrl" placeholder="https://loom.com/share/..." style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-glass); background:var(--bg-glass); color:var(--text-primary); font-size:13px; outline:none;">
+              </div>
+              <div style="margin-bottom:16px;">
+                <label style="font-size:11px; font-weight:600; display:block; margin-bottom:6px; color:var(--text-secondary);">Video Transcript (Copy from Loom's auto-transcript)</label>
+                <textarea id="modalVideoTranscript" rows="4" placeholder="Paste the transcription text here to score their verbal explanation..." style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-glass); background:var(--bg-glass); color:var(--text-primary); font-size:13px; font-family:inherit; resize:vertical; outline:none;"></textarea>
+              </div>
+              <div style="display:flex; justify-content:flex-end;">
+                <button class="btn btn--primary" onclick="App.analyzeCandidateVideo('${c.id}')">🔍 Analyze Video</button>
+              </div>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="video-stage-card">
+              <div class="video-stage-card__title" style="justify-content:space-between; display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span>📹 Video Stage:</span>
+                  <span class="td-verdict-badge td-verdict-badge--${c.videoAnalysis.verdictClass}">${c.videoAnalysis.verdict} (${c.videoAnalysis.overallScore}%)</span>
+                </div>
+                ${c.videoAnalysis.url ? `<a href="${c.videoAnalysis.url}" target="_blank" class="contact-link contact-link--portfolio">🌐 Open Video Link</a>` : ''}
+              </div>
+              
+              <div style="font-size:12px; color:var(--text-secondary); line-height:1.6; padding:12px; background:var(--bg-glass-hover); border-radius:var(--radius-sm); border:1px solid var(--border-glass); margin-bottom:20px; margin-top:12px;">
+                <strong>Summary:</strong> ${escapeHtml(c.videoAnalysis.summary)}
+              </div>
+
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                <span style="font-size:12px; font-weight:600; color:var(--text-secondary);">Conversational Tone:</span>
+                <span class="tone-badge tone-badge--${c.videoAnalysis.toneClass || 'natural'}">${c.videoAnalysis.tone || 'Conversational'}</span>
+              </div>
+              <p style="font-size:11px; color:var(--text-muted); margin-bottom:16px;">
+                ${escapeHtml(c.videoAnalysis.toneDesc || 'Candidate presentation delivery tone analysis.')}
+              </p>
+
+              <!-- Side-by-Side Comparison -->
+              <div class="comparison-grid">
+                <!-- CV Scorecard -->
+                <div>
+                  <div class="comparison-column-header">📄 Resume claims</div>
+                  <div class="score-grid" style="display:flex; flex-direction:column; gap:8px; border:none; padding:0; background:transparent;">
+                    ${c.categories.filter(cat => ['aws', 'email', 'server'].includes(cat.id)).map(cat => {
+                      let label = cat.name;
+                      if (cat.id === 'email') label = 'Email Infrastructure';
+                      return `
+                        <div style="font-size:12px;">
+                          <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+                            <span>${cat.icon} ${label}</span>
+                            <strong>${cat.percentage}%</strong>
+                          </div>
+                          <div style="height:4px; background:var(--border-glass); border-radius:2px; overflow:hidden;">
+                            <div style="width:${cat.percentage}%; height:100%; background:var(--accent-blue); border-radius:2px;"></div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+                
+                <!-- Video Scorecard -->
+                <div>
+                  <div class="comparison-column-header">🗣️ Spoken presentation</div>
+                  <div class="score-grid" style="display:flex; flex-direction:column; gap:8px; border:none; padding:0; background:transparent;">
+                    ${c.videoAnalysis.categories.map(cat => `
+                      <div style="font-size:12px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+                          <span>${cat.icon} ${cat.name}</span>
+                          <strong>${cat.percentage}%</strong>
+                        </div>
+                        <div style="height:4px; background:var(--border-glass); border-radius:2px; overflow:hidden;">
+                          <div style="width:${cat.percentage}%; height:100%; background:var(--accent-purple); border-radius:2px;"></div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Discrepancies / CV Padding Check -->
+              ${c.videoAnalysis.discrepancies && c.videoAnalysis.discrepancies.length > 0 ? `
+                <div class="discrepancy-card">
+                  <div class="discrepancy-card__title">⚠️ CV Discrepancies / Gaps Detected</div>
+                  <ul class="discrepancy-card__list">
+                    ${c.videoAnalysis.discrepancies.map(d => `<li>${escapeHtml(d)}</li>`).join('')}
+                  </ul>
+                </div>
+              ` : `
+                <div style="background:rgba(16, 185, 129, 0.05); border:1px dashed rgba(16, 185, 129, 0.2); border-radius:var(--radius-md); padding:12px; margin-top:20px; font-size:12px; color:var(--accent-teal); display:flex; align-items:center; gap:8px;">
+                  ✅ Spoken presentation matches claimed resume skills!
+                </div>
+              `}
+
+              <!-- Projects Mentioned -->
+              <div style="margin-top:20px;">
+                <label style="font-size:12px; font-weight:600; display:block; margin-bottom:6px; color:var(--text-secondary);">Projects Mentioned Verbally</label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                  ${c.videoAnalysis.projects && c.videoAnalysis.projects.length > 0
+                    ? c.videoAnalysis.projects.map(p => `<span class="keyword-tag" style="background:rgba(139, 92, 246, 0.08); border-color:rgba(139, 92, 246, 0.15); color:var(--text-primary); font-size:11px; padding:3px 8px; border-radius:6px;">🛠️ ${escapeHtml(p)}</span>`).join('')
+                    : '<span style="font-size:11px; color:var(--text-muted); font-style:italic;">No specific projects extracted</span>'
+                  }
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; margin-top:20px; gap:8px;">
+                <button class="btn btn--sm btn--danger" onclick="App.deleteVideoAnalysis('${c.id}')">🗑 Reset Video Screening</button>
+              </div>
+            </div>
+          `;
+        }
+      })()}
+
       <div style="margin-top:24px">
         <label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;">📝 Your Notes</label>
         <textarea class="notes-area" rows="3" placeholder="Add your notes about this candidate..."
@@ -659,6 +799,90 @@ const App = (() => {
 
   function closeModal() {
     document.getElementById('detailModal').classList.remove('modal-overlay--active');
+  }
+
+  // ── Settings Modal & API Handlers ──────────────────────────
+
+  function openSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    const key = localStorage.getItem('gemini_api_key') || '';
+    document.getElementById('geminiApiKeyInput').value = key;
+    modal.classList.add('modal-overlay--active');
+  }
+
+  function closeSettingsModal() {
+    document.getElementById('settingsModal').classList.remove('modal-overlay--active');
+  }
+
+  function saveSettings() {
+    const key = document.getElementById('geminiApiKeyInput').value.trim();
+    if (key) {
+      localStorage.setItem('gemini_api_key', key);
+      toast('Gemini API Key saved successfully!', 'success');
+    } else {
+      localStorage.removeItem('gemini_api_key');
+      toast('Gemini API Key removed. Using local rule-based analyzer.', 'info');
+    }
+    closeSettingsModal();
+  }
+
+  // ── Video Analysis Handlers ────────────────────────────────
+
+  async function analyzeCandidateVideo(id) {
+    const c = candidates.find(x => x.id === id);
+    if (!c) return;
+
+    const videoUrl = document.getElementById('modalVideoUrl').value.trim();
+    const transcript = document.getElementById('modalVideoTranscript').value;
+
+    if (!transcript || transcript.trim().length < 20) {
+      toast('Please paste the candidate\'s video transcript (at least a few sentences).', 'error');
+      return;
+    }
+
+    const btn = document.querySelector('.video-stage-card .btn--primary');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `<div class="spinner"></div> Analyzing...`;
+    btn.disabled = true;
+
+    try {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      let analysisResult;
+      
+      if (apiKey) {
+        analysisResult = await VideoAnalyzer.analyzeWithGemini(apiKey, transcript, c);
+      } else {
+        analysisResult = VideoAnalyzer.analyze(transcript, c);
+      }
+      
+      analysisResult.url = videoUrl;
+      analysisResult.transcript = transcript;
+      
+      c.videoAnalysis = analysisResult;
+      save();
+      
+      showDetail(c.id);
+      renderCandidateTable();
+      toast(`Video screening completed for ${c.name}!`, 'success');
+    } catch (e) {
+      toast(`Error: ${e.message}`, 'error');
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  function deleteVideoAnalysis(id) {
+    const c = candidates.find(x => x.id === id);
+    if (!c) return;
+
+    if (confirm(`Are you sure you want to reset the video screening analysis for ${c.name}?`)) {
+      delete c.videoAnalysis;
+      save();
+      showDetail(c.id);
+      renderCandidateTable();
+      toast('Video screening analysis reset.', 'info');
+    }
   }
 
   // ── Comparison / Radar Chart ──────────────────────────────
@@ -837,6 +1061,7 @@ const App = (() => {
 
     const categories = SkillAnalyzer.getCategories();
     const headers = ['Name', 'Email', 'Phone', 'Experience (Years)', 'Source', 'Overall Score', 'Verdict',
+      'Video Score', 'Video Verdict', 'Video Tone', 'Video Link',
       ...categories.map(c => c.name), 'Strengths', 'Gaps', 'Notes', 'Analyzed At'];
 
     const rows = candidates.map(c => [
@@ -847,6 +1072,10 @@ const App = (() => {
       c.source,
       c.overallScore + '%',
       c.verdict,
+      c.videoAnalysis ? c.videoAnalysis.overallScore + '%' : 'N/A',
+      c.videoAnalysis ? c.videoAnalysis.verdict : 'N/A',
+      c.videoAnalysis ? c.videoAnalysis.tone : 'N/A',
+      c.videoAnalysis ? c.videoAnalysis.url || '' : '',
       ...c.categories.map(cat => cat.percentage + '%'),
       c.strengths.join('; '),
       c.gaps.join('; '),
@@ -1032,6 +1261,10 @@ const App = (() => {
       if (e.target.classList.contains('modal-overlay')) closeUrlWarningModal();
     });
 
+    document.getElementById('settingsModal').addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal-overlay')) closeSettingsModal();
+    });
+
     // Theme toggle
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
     initTheme();
@@ -1083,6 +1316,11 @@ const App = (() => {
     toggleTheme,
     closeUrlWarningModal,
     analyzeModalText,
+    openSettingsModal,
+    closeSettingsModal,
+    saveSettings,
+    analyzeCandidateVideo,
+    deleteVideoAnalysis,
   };
 
 })();

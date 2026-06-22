@@ -30,6 +30,7 @@
         </div>
       </div>
       <div class="app-header__actions">
+        <button class="btn" onclick="App.openSettingsModal()">⚙️ Settings</button>
         <button class="btn" id="themeToggle">☀️ Light</button>
         <button class="btn" onclick="App.exportCSV()">📤 Export CSV</button>
         <button class="btn btn--danger" onclick="App.clearAll()">🗑 Clear All</button>
@@ -150,6 +151,7 @@
               <th>Email</th>
               <th data-sort="overallScore" class="sorted">Score ↕</th>
               <th data-sort="verdict">Verdict ↕</th>
+              <th data-sort="videoScore">Video Stage ↕</th>
               <th>Top Skills</th>
               <th data-sort="source">Source ↕</th>
               <th data-sort="date">Date ↕</th>
@@ -157,7 +159,7 @@
           </thead>
           <tbody id="candidateTableBody">
             <tr>
-              <td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">
+              <td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">
                 No candidates analyzed yet. Upload a CV or paste profile text to get started.
               </td>
             </tr>
@@ -208,7 +210,31 @@
     </div>
   </div>
 
+  <!-- ── Settings Modal ────────────────────────────────────── -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal__header">
+        <h2 class="modal__title">⚙️ Screening Settings</h2>
+        <button class="modal__close" onclick="App.closeSettingsModal()">✕</button>
+      </div>
+      <div class="modal__body">
+        <div style="margin-bottom: 20px;">
+          <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">Gemini API Key (Optional)</label>
+          <input type="password" id="geminiApiKeyInput" placeholder="AI-123456789..." style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); color: var(--text-primary); outline: none; font-size: 14px; transition: border-color var(--transition-fast);">
+          <p style="font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
+            Required only for AI-powered video screening. Your key is stored safely on your computer and is only sent directly to Google's Gemini servers. Leave blank to use local rule-based analysis.
+          </p>
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+          <button class="btn" onclick="App.closeSettingsModal()">Cancel</button>
+          <button class="btn btn--primary" onclick="App.saveSettings()">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="analyzer.js"></script>
+  <script src="video_analyzer.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
