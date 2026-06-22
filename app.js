@@ -180,29 +180,6 @@ const App = (() => {
           </div>
         </div>
 
-        <div class="score-grid">
-          ${result.categories.map(cat => `
-            <div class="score-item">
-              <div class="score-item__header">
-                <div class="score-item__name">
-                  ${cat.icon} ${cat.name}
-                  <span class="score-item__badge score-item__badge--${cat.isRequired ? 'required' : 'preferred'}">${cat.isRequired ? 'Required' : 'Preferred'}</span>
-                </div>
-                <div class="score-item__value ${cat.percentage >= 60 ? 'td-score--high' : cat.percentage >= 40 ? 'td-score--mid' : 'td-score--low'}">${cat.percentage}%</div>
-              </div>
-              <div class="score-item__bar">
-                <div class="score-item__fill score-item__fill--${cat.percentage >= 60 ? 'high' : cat.percentage >= 40 ? 'mid' : 'low'}" style="width: 0" data-width="${cat.percentage}%"></div>
-              </div>
-              <div class="score-item__keywords">
-                ${cat.matchedKeywords.length > 0
-                  ? cat.matchedKeywords.map(kw => `<span class="keyword-tag">${escapeHtml(kw)}</span>`).join('')
-                  : `<span style="font-size:11px;color:var(--text-muted);font-style:italic;">No keywords detected</span>`
-                }
-              </div>
-            </div>
-          `).join('')}
-        </div>
-
         <div class="insights-grid">
           <div class="insight-card insight-card--strengths">
             <div class="insight-card__title">💪 Strengths</div>
@@ -225,6 +202,30 @@ const App = (() => {
               : `<div class="insight-card__empty">All preferred skills covered!</div>`
             }
           </div>
+        </div>
+
+        <button class="btn btn--sm detail-toggle" onclick="this.nextElementSibling.classList.toggle('score-grid--open');this.textContent=this.nextElementSibling.classList.contains('score-grid--open')?'▲ Hide Details':'▼ Show Details'">▼ Show Details</button>
+        <div class="score-grid score-grid--collapsible">
+          ${result.categories.map(cat => `
+            <div class="score-item">
+              <div class="score-item__header">
+                <div class="score-item__name">
+                  ${cat.icon} ${cat.name}
+                  <span class="score-item__badge score-item__badge--${cat.isRequired ? 'required' : 'preferred'}">${cat.isRequired ? 'Required' : 'Preferred'}</span>
+                </div>
+                <div class="score-item__value ${cat.percentage >= 60 ? 'td-score--high' : cat.percentage >= 40 ? 'td-score--mid' : 'td-score--low'}">${cat.percentage}%</div>
+              </div>
+              <div class="score-item__bar">
+                <div class="score-item__fill score-item__fill--${cat.percentage >= 60 ? 'high' : cat.percentage >= 40 ? 'mid' : 'low'}" style="width: 0" data-width="${cat.percentage}%"></div>
+              </div>
+              <div class="score-item__keywords">
+                ${cat.matchedKeywords.length > 0
+                  ? cat.matchedKeywords.map(kw => `<span class="keyword-tag">${escapeHtml(kw)}</span>`).join('')
+                  : `<span style="font-size:11px;color:var(--text-muted);font-style:italic;">No keywords detected</span>`
+                }
+              </div>
+            </div>
+          `).join('')}
         </div>
 
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
@@ -362,7 +363,29 @@ const App = (() => {
         </div>
       </div>
 
-      <div class="score-grid" style="margin-top:24px">
+      <div class="insights-grid" style="margin-top:24px">
+        <div class="insight-card insight-card--strengths">
+          <div class="insight-card__title">💪 Strengths</div>
+          ${c.strengths.length > 0
+            ? `<ul class="insight-card__list">${c.strengths.map(s => `<li>${s}</li>`).join('')}</ul>`
+            : `<div class="insight-card__empty">No strong matches</div>`}
+        </div>
+        <div class="insight-card insight-card--gaps">
+          <div class="insight-card__title">⚠️ Missing Required</div>
+          ${c.gaps.length > 0
+            ? `<ul class="insight-card__list">${c.gaps.map(g => `<li>${g}</li>`).join('')}</ul>`
+            : `<div class="insight-card__empty">All covered!</div>`}
+        </div>
+        <div class="insight-card insight-card--warnings">
+          <div class="insight-card__title">📝 Missing Preferred</div>
+          ${c.warnings.length > 0
+            ? `<ul class="insight-card__list">${c.warnings.map(w => `<li>${w}</li>`).join('')}</ul>`
+            : `<div class="insight-card__empty">All covered!</div>`}
+        </div>
+      </div>
+
+      <button class="btn btn--sm detail-toggle" style="margin-top:16px" onclick="this.nextElementSibling.classList.toggle('score-grid--open');this.textContent=this.nextElementSibling.classList.contains('score-grid--open')?'▲ Hide Details':'▼ Show Details'">▼ Show Details</button>
+      <div class="score-grid score-grid--collapsible" style="margin-top:12px">
         ${c.categories.map(cat => `
           <div class="score-item">
             <div class="score-item__header">
@@ -383,27 +406,6 @@ const App = (() => {
             </div>
           </div>
         `).join('')}
-      </div>
-
-      <div class="insights-grid" style="margin-top:24px">
-        <div class="insight-card insight-card--strengths">
-          <div class="insight-card__title">💪 Strengths</div>
-          ${c.strengths.length > 0
-            ? `<ul class="insight-card__list">${c.strengths.map(s => `<li>${s}</li>`).join('')}</ul>`
-            : `<div class="insight-card__empty">No strong matches</div>`}
-        </div>
-        <div class="insight-card insight-card--gaps">
-          <div class="insight-card__title">⚠️ Missing Required</div>
-          ${c.gaps.length > 0
-            ? `<ul class="insight-card__list">${c.gaps.map(g => `<li>${g}</li>`).join('')}</ul>`
-            : `<div class="insight-card__empty">All covered!</div>`}
-        </div>
-        <div class="insight-card insight-card--warnings">
-          <div class="insight-card__title">📝 Missing Preferred</div>
-          ${c.warnings.length > 0
-            ? `<ul class="insight-card__list">${c.warnings.map(w => `<li>${w}</li>`).join('')}</ul>`
-            : `<div class="insight-card__empty">All covered!</div>`}
-        </div>
       </div>
 
       <div style="margin-top:24px">
@@ -769,12 +771,40 @@ const App = (() => {
       if (e.target.classList.contains('modal-overlay')) closeModal();
     });
 
+    // Theme toggle
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    initTheme();
+
     // Render existing data
     renderDashboard();
     renderCandidateTable();
 
     // Restore analysis results
     candidates.forEach(c => renderAnalysisResult(c));
+  }
+
+  // ── Theme Toggle ──────────────────────────────────────────
+
+  function initTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.getElementById('themeToggle').textContent = '🌙 Dark';
+    }
+  }
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    if (html.getAttribute('data-theme') === 'light') {
+      html.removeAttribute('data-theme');
+      btn.textContent = '☀️ Light';
+      localStorage.setItem('theme', 'dark');
+    } else {
+      html.setAttribute('data-theme', 'light');
+      btn.textContent = '🌙 Dark';
+      localStorage.setItem('theme', 'light');
+    }
   }
 
   // ── Public API ────────────────────────────────────────────
@@ -789,6 +819,7 @@ const App = (() => {
     clearAll,
     exportCSV,
     toggleComparison,
+    toggleTheme,
   };
 
 })();
