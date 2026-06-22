@@ -231,31 +231,100 @@ const SkillAnalyzer = (() => {
   // ── Name Detection ──────────────────────────────────────────
 
   function detectName(text) {
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-    // Try first few non-empty lines — CVs usually start with the name
-    for (let i = 0; i < Math.min(lines.length, 5); i++) {
-      const line = lines[i];
-      // Skip lines that look like headers, emails, phones, URLs
-      if (/^(curriculum|resume|cv|portfolio|about|profile|contact|email|phone|address|summary|objective)/i.test(line)) continue;
-      if (/@/.test(line)) continue;
-      if (/^[\d\+\(\)]/.test(line) && line.length < 20) continue;
-      if (/^https?:\/\//i.test(line)) continue;
-      if (/^(linkedin|github|twitter|website)/i.test(line)) continue;
-      
-      // Name-like: 2-5 words, mostly alpha, no weird chars
-      const cleaned = line.replace(/[,.|:;]/g, '').trim();
-      const words = cleaned.split(/\s+/);
-      if (words.length >= 2 && words.length <= 5 && /^[A-Za-z\s'.,-]+$/.test(cleaned) && cleaned.length < 50) {
-        return cleaned;
+    // Strategy 1: Look for explicit name labels
+    const labelPatterns = [
+      /(?:^|\n)\s*(?:name|nama|full\s*name|nama\s*lengkap)\s*[:\-\|]\s*([A-Za-z][A-Za-z\s'.,-]{2,40})/im,
+      /(?:^|\n)\s*(?:name|nama|full\s*name)\s+([A-Z][A-Za-z\s'.,-]{2,40})/im,
+    ];
+    for (const pattern of labelPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const name = match[1].trim().replace(/\s+/g, ' ');
+        if (isLikelyName(name)) return cleanName(name);
       }
     }
 
-    // Fallback: look for "Name: ..." pattern
-    const nameMatch = text.match(/(?:name|nama)\s*[:\-]\s*([A-Za-z\s'.,-]{3,40})/i);
-    if (nameMatch) return nameMatch[1].trim();
+    // Strategy 2: Scan first lines of text
+    // Handle both proper newlines and PDF text (split on double+ spaces too)
+    let lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    // If we got very few lines, the text might be concatenated — try splitting long lines
+    if (lines.length < 5 && lines[0] && lines[0].length > 100) {
+      const expanded = [];
+      for (const line of lines) {
+        // Split on double spaces, pipes, tabs — common PDF artifacts
+        const parts = line.split(/\s{2,}|\t|\|/).map(p => p.trim()).filter(p => p.length > 0);
+        expanded.push(...parts);
+      }
+      lines = expanded;
+    }
+
+    // Check first 10 segments for a name-like string
+    const skipPatterns = [
+      /^(curriculum|resume|cv|portfolio|about|profile|contact|email|phone|address|summary|objective|experience|education|skill|work|personal|data|diri|riwayat|informasi)/i,
+      /@/,
+      /^https?:\/\//i,
+      /^(linkedin|github|twitter|website|www\.)/i,
+      /^\d{4}/, // starts with year
+      /^(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)/i,
+    ];
+
+    for (let i = 0; i < Math.min(lines.length, 10); i++) {
+      const line = lines[i];
+      
+      // Skip lines that match skip patterns
+      let skip = false;
+      for (const pat of skipPatterns) {
+        if (pat.test(line)) { skip = true; break; }
+      }
+      if (skip) continue;
+
+      // Skip lines that are too short or too long
+      if (line.length < 3 || line.length > 50) continue;
+      
+      // Skip lines that look like phone numbers
+      if (/^[\d\+\(\)\-\s]{7,}$/.test(line)) continue;
+
+      // Check if it looks like a name (2-5 words, mostly letters)
+      const cleaned = line.replace(/[,|:;]/g, '').trim();
+      if (isLikelyName(cleaned)) {
+        return cleanName(cleaned);
+      }
+    }
+
+    // Strategy 3: LinkedIn-style patterns
+    const linkedinMatch = text.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,4})\s*(?:\n|–|-|·|\|)/m);
+    if (linkedinMatch && isLikelyName(linkedinMatch[1])) {
+      return cleanName(linkedinMatch[1]);
+    }
+
+    // Strategy 4: Find the first capitalized multi-word sequence in the text
+    const capMatch = text.match(/([A-Z][a-zA-Z'.]+(?:\s+[A-Z][a-zA-Z'.]+){1,4})/);
+    if (capMatch && isLikelyName(capMatch[1])) {
+      return cleanName(capMatch[1]);
+    }
 
     return 'Unknown Candidate';
+  }
+
+  function isLikelyName(str) {
+    if (!str || str.length < 3 || str.length > 50) return false;
+    const words = str.split(/\s+/);
+    if (words.length < 1 || words.length > 6) return false;
+    // Allow letters, dots, apostrophes, hyphens, spaces
+    if (!/^[A-Za-z][A-Za-z\s'.\-,]+$/.test(str)) return false;
+    // At least one word should be 2+ chars
+    if (!words.some(w => w.replace(/[^A-Za-z]/g, '').length >= 2)) return false;
+    // Should not be a common non-name word
+    const nonNames = ['curriculum', 'vitae', 'resume', 'summary', 'profile', 'experience', 'education', 'skills', 'about', 'contact', 'address', 'phone', 'email', 'objective', 'personal', 'data', 'information', 'references'];
+    if (nonNames.includes(str.toLowerCase())) return false;
+    if (words.length <= 2 && nonNames.includes(words[0].toLowerCase())) return false;
+    return true;
+  }
+
+  function cleanName(name) {
+    // Normalize whitespace, trim trailing dots/commas
+    return name.replace(/\s+/g, ' ').replace(/[,.\s]+$/, '').trim();
   }
 
   // ── Contact Detection ───────────────────────────────────────

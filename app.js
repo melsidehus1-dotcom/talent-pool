@@ -56,8 +56,26 @@ const App = (() => {
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
-          const pageText = content.items.map(item => item.str).join(' ');
-          fullText += pageText + '\n';
+          // Group text items by Y-coordinate to reconstruct proper lines
+          const lines = [];
+          let currentLine = [];
+          let lastY = null;
+          for (const item of content.items) {
+            const y = item.transform ? item.transform[5] : null;
+            if (lastY !== null && y !== null && Math.abs(y - lastY) > 3) {
+              // Different Y = new line
+              lines.push(currentLine.join(' '));
+              currentLine = [];
+            }
+            if (item.str.trim()) {
+              currentLine.push(item.str);
+            }
+            lastY = y;
+          }
+          if (currentLine.length > 0) {
+            lines.push(currentLine.join(' '));
+          }
+          fullText += lines.join('\n') + '\n';
         }
         resolve(fullText);
       } catch (err) {
