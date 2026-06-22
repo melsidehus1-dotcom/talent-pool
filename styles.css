@@ -1299,3 +1299,84 @@ tbody tr:last-child td {
     overflow-x: auto;
   }
 }
+
+/* ── Keyboard Shortcut Keys & New Contact Badges ────────────── */
+
+.kbd-key {
+  background: var(--bg-glass-hover);
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  display: inline-block;
+  font-family: inherit;
+  font-size: 0.85em;
+  font-weight: 700;
+  line-height: 1.4;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+[data-theme="light"] .kbd-key {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none !important;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  margin-right: 4px;
+  margin-top: 4px;
+}
+
+.contact-link:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+  border-color: var(--accent-blue);
+  transform: translateY(-1px);
+}
+
+.contact-link--linkedin:hover {
+  border-color: #0077b5;
+  background: rgba(0, 119, 181, 0.15);
+}
+
+.contact-link--github:hover {
+  border-color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .contact-link--github:hover {
+  border-color: #0f172a;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.contact-link--drive:hover {
+  border-color: #34a853;
+  background: rgba(52, 168, 83, 0.15);
+}
+
+.contact-link--portfolio:hover {
+  border-color: var(--accent-purple);
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.contact-link--email:hover {
+  border-color: var(--accent-teal);
+  background: rgba(20, 184, 166, 0.15);
+}
+
+.contact-link--phone:hover {
+  border-color: var(--accent-amber);
+  background: rgba(245, 158, 11, 0.15);
+}
+

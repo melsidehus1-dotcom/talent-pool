@@ -128,8 +128,195 @@ const App = (() => {
     }
   }
 
-  function analyzeText(text) {
+  function looksLikeUrl(str) {
+    const trimmed = str.trim();
+    if (!trimmed) return false;
+    if (/^(https?:\/\/[^\s]+)$/i.test(trimmed)) return true;
+    if (/^(?:[a-zA-Z0-9.-]+\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}(?:\/[^\s]*)?$/i.test(trimmed)) {
+      if (!trimmed.includes(' ') && trimmed.length > 4) return true;
+    }
+    return false;
+  }
+
+  function getUrlType(url) {
+    const lower = url.toLowerCase();
+    if (lower.includes('glints.id') || lower.includes('glints.com')) return 'glints';
+    if (lower.includes('linkedin.com')) return 'linkedin';
+    if (lower.includes('drive.google.com') || lower.includes('dropbox.com') || lower.includes('box.com') || lower.includes('onedrive.live.com') || lower.includes('s3.amazonaws.com')) return 'drive';
+    return 'generic';
+  }
+
+  function openUrlWarningModal(url) {
+    let cleanUrl = url.trim();
+    if (!/^https?:\/\//i.test(cleanUrl)) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+
+    const type = getUrlType(cleanUrl);
+    const modal = document.getElementById('urlWarningModal');
+    const titleEl = document.getElementById('urlModalTitle');
+    const bodyEl = document.getElementById('urlModalBody');
+
+    if (type === 'glints' || type === 'linkedin') {
+      const siteName = type === 'glints' ? 'Glints' : 'LinkedIn';
+      titleEl.innerHTML = `<span style="color: var(--accent-amber);">⚠️</span> Direct Link Screening Not Supported`;
+      bodyEl.innerHTML = `
+        <p style="margin-bottom: 16px; line-height: 1.6; color: var(--text-secondary);">
+          Because recruitment dashboards (like <strong>${siteName}</strong>) require you to be logged in to view candidate details, this tool cannot fetch profile information directly from a URL.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin: 20px 0;">
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px; color: var(--accent-blue);">1</div>
+            <div style="line-height: 1.5; color: var(--text-primary);">
+              Open the candidate's page on <strong>${siteName}</strong>.
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px; color: var(--accent-blue);">2</div>
+            <div style="line-height: 1.5; color: var(--text-primary);">
+              Select all profile content: press <kbd class="kbd-key">Ctrl + A</kbd> (or <kbd class="kbd-key">Cmd + A</kbd>).
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px; color: var(--accent-blue);">3</div>
+            <div style="line-height: 1.5; color: var(--text-primary);">
+              Copy the selection: press <kbd class="kbd-key">Ctrl + C</kbd> (or <kbd class="kbd-key">Cmd + C</kbd>).
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px; color: var(--accent-blue);">4</div>
+            <div style="line-height: 1.5; color: var(--text-primary);">
+              Paste the text below (<kbd class="kbd-key">Ctrl + V</kbd>) and click <strong>Analyze Paste</strong>.
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 24px;">
+          <textarea id="modalPasteText" placeholder="Paste the candidate profile text here..." style="width: 100%; height: 120px; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); color: var(--text-primary); font-family: inherit; font-size: 14px; resize: vertical; margin-bottom: 16px; outline: none; transition: border-color var(--transition-fast);"></textarea>
+          <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="btn" onclick="App.closeUrlWarningModal()">Cancel</button>
+            <button class="btn btn--primary" onclick="App.analyzeModalText()">🔍 Analyze Paste</button>
+          </div>
+        </div>
+      `;
+    } else if (type === 'drive') {
+      titleEl.innerHTML = `<span style="color: var(--accent-teal);">📁</span> Google Drive / Cloud Link Detected`;
+      bodyEl.innerHTML = `
+        <p style="margin-bottom: 16px; line-height: 1.6; color: var(--text-secondary);">
+          Browsers block web apps from downloading files directly from cloud storage (Google Drive/Dropbox) due to security policies (CORS).
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin: 20px 0;">
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px; color: var(--accent-teal);">1</div>
+            <div style="line-height: 1.5; color: var(--text-primary);">
+              Open the link in a new tab: <a href="${escapeHtml(cleanUrl)}" target="_blank" style="color: var(--accent-blue); text-decoration: underline; word-break: break-all;">${escapeHtml(cleanUrl)}</a>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px; color: var(--accent-teal);">2</div>
+            <div style="line-height: 1.5; color: var(--text-primary);">
+              Download the PDF CV to your local device.
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px; color: var(--accent-teal);">3</div>
+            <div style="line-height: 1.5; color: var(--text-primary);">
+              Drag and drop the downloaded PDF file into the <strong>Drop CV here</strong> zone on the left of the screen.
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+          <button class="btn btn--primary" onclick="window.open('${escapeHtml(cleanUrl)}', '_blank'); App.closeUrlWarningModal();">🌐 Open Link</button>
+          <button class="btn" onclick="App.closeUrlWarningModal()">Close</button>
+        </div>
+      `;
+    } else {
+      titleEl.innerHTML = `<span style="color: var(--accent-purple);">🌐</span> Portfolio / Web Link Detected`;
+      bodyEl.innerHTML = `
+        <p style="margin-bottom: 16px; line-height: 1.6; color: var(--text-secondary);">
+          Due to browser security regulations (CORS), this application cannot scrape content from personal websites or portfolio links directly.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin: 20px 0;">
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px; color: var(--accent-purple);">1</div>
+            <div style="line-height: 1.5; color: var(--text-primary);">
+              Open the link in a new window: <a href="${escapeHtml(cleanUrl)}" target="_blank" style="color: var(--accent-blue); text-decoration: underline; word-break: break-all;">${escapeHtml(cleanUrl)}</a>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px; color: var(--accent-purple);">2</div>
+            <div style="line-height: 1.5; color: var(--text-primary);">
+              If the page has a downloadable CV, download it and drag it into the **Drop CV** zone.
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px; color: var(--accent-purple);">3</div>
+            <div style="line-height: 1.5; color: var(--text-primary);">
+              Alternatively, copy the resume/about text from their site, paste it in the box below, and click <strong>Analyze Paste</strong>.
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 24px;">
+          <textarea id="modalPasteText" placeholder="Paste the candidate portfolio/profile text here..." style="width: 100%; height: 120px; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); color: var(--text-primary); font-family: inherit; font-size: 14px; resize: vertical; margin-bottom: 16px; outline: none; transition: border-color var(--transition-fast);"></textarea>
+          <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="btn" onclick="App.closeUrlWarningModal()">Cancel</button>
+            <button class="btn btn--primary" onclick="App.analyzeModalText()">🔍 Analyze Paste</button>
+          </div>
+        </div>
+      `;
+    }
+
+    modal.classList.add('modal-overlay--active');
+  }
+
+  function closeUrlWarningModal() {
+    document.getElementById('urlWarningModal').classList.remove('modal-overlay--active');
+  }
+
+  function analyzeModalText() {
+    const text = document.getElementById('modalPasteText').value;
     if (!text || text.trim().length < 20) {
+      toast('Please paste more profile text.', 'error');
+      return;
+    }
+    closeUrlWarningModal();
+    analyzeText(text);
+  }
+
+  function generateContactBadgesHtml(contact, experience) {
+    const contactParts = [];
+    if (contact.email) {
+      contactParts.push(`<a href="mailto:${contact.email}" class="contact-link contact-link--email" title="Email: ${escapeHtml(contact.email)}">✉️ Email</a>`);
+    }
+    if (contact.phone) {
+      contactParts.push(`<span class="contact-link contact-link--phone" title="Phone: ${escapeHtml(contact.phone)}">📞 ${escapeHtml(contact.phone)}</span>`);
+    }
+    if (contact.linkedin) {
+      contactParts.push(`<a href="${contact.linkedin}" class="contact-link contact-link--linkedin" target="_blank">🔗 LinkedIn</a>`);
+    }
+    if (contact.github) {
+      contactParts.push(`<a href="${contact.github}" class="contact-link contact-link--github" target="_blank">💻 GitHub</a>`);
+    }
+    if (contact.drive) {
+      contactParts.push(`<a href="${contact.drive}" class="contact-link contact-link--drive" target="_blank">📁 Drive Portfolio</a>`);
+    }
+    if (contact.portfolio) {
+      contactParts.push(`<a href="${contact.portfolio}" class="contact-link contact-link--portfolio" target="_blank">🌐 Portfolio</a>`);
+    }
+    if (experience > 0) {
+      contactParts.push(`<span class="contact-link" style="cursor:default;">⏳ ${experience}+ yrs exp</span>`);
+    }
+    return contactParts.join(' ');
+  }
+
+  function analyzeText(text) {
+    if (!text) return;
+
+    if (looksLikeUrl(text)) {
+      openUrlWarningModal(text);
+      return;
+    }
+
+    if (text.trim().length < 20) {
       toast('Please paste more text (at least a few lines from the profile).', 'error');
       return;
     }
@@ -156,11 +343,7 @@ const App = (() => {
     const container = document.getElementById('analysisResults');
     const initials = result.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 
-    const contactParts = [];
-    if (result.contact.email) contactParts.push(`<a href="mailto:${result.contact.email}">${result.contact.email}</a>`);
-    if (result.contact.phone) contactParts.push(result.contact.phone);
-    if (result.contact.linkedin) contactParts.push(`<a href="${result.contact.linkedin}" target="_blank">LinkedIn</a>`);
-    if (result.experience > 0) contactParts.push(`${result.experience}+ years experience`);
+    const contactHtml = generateContactBadgesHtml(result.contact, result.experience);
 
     const html = `
       <div class="analysis-result" id="result-${result.id}">
@@ -169,7 +352,7 @@ const App = (() => {
             <div class="analysis-result__avatar">${initials}</div>
             <div>
               <div class="analysis-result__name">${escapeHtml(result.name)}</div>
-              <div class="analysis-result__contact">${contactParts.join(' · ') || 'No contact info detected'}</div>
+              <div class="analysis-result__contact" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;">${contactHtml || 'No contact info detected'}</div>
             </div>
           </div>
           <div class="verdict verdict--${result.verdictClass}">
@@ -340,11 +523,7 @@ const App = (() => {
 
     const initials = c.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 
-    const contactParts = [];
-    if (c.contact.email) contactParts.push(`<a href="mailto:${c.contact.email}">${c.contact.email}</a>`);
-    if (c.contact.phone) contactParts.push(c.contact.phone);
-    if (c.contact.linkedin) contactParts.push(`<a href="${c.contact.linkedin}" target="_blank">LinkedIn</a>`);
-    if (c.experience > 0) contactParts.push(`${c.experience}+ years`);
+    const contactHtml = generateContactBadgesHtml(c.contact, c.experience);
 
     body.innerHTML = `
       <div class="analysis-result__header">
@@ -352,7 +531,9 @@ const App = (() => {
           <div class="analysis-result__avatar">${initials}</div>
           <div>
             <div class="analysis-result__name">${escapeHtml(c.name)}</div>
-            <div class="analysis-result__contact">${contactParts.join(' · ') || 'No contact info'} · ${c.source}</div>
+            <div class="analysis-result__contact" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; align-items:center;">
+              ${contactHtml || 'No contact info'} <span style="font-size:12px; color:var(--text-muted); margin-left:4px;">· Source: ${escapeHtml(c.source)}</span>
+            </div>
           </div>
         </div>
         <div class="verdict verdict--${c.verdictClass}">
@@ -766,9 +947,12 @@ const App = (() => {
       th.addEventListener('click', () => handleSort(th.dataset.sort));
     });
 
-    // Modal close
     document.getElementById('detailModal').addEventListener('click', (e) => {
       if (e.target.classList.contains('modal-overlay')) closeModal();
+    });
+
+    document.getElementById('urlWarningModal').addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal-overlay')) closeUrlWarningModal();
     });
 
     // Theme toggle
@@ -820,6 +1004,8 @@ const App = (() => {
     exportCSV,
     toggleComparison,
     toggleTheme,
+    closeUrlWarningModal,
+    analyzeModalText,
   };
 
 })();

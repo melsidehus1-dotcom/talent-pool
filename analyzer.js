@@ -329,15 +329,42 @@ const SkillAnalyzer = (() => {
 
   // ── Contact Detection ───────────────────────────────────────
 
+  function cleanUrl(url) {
+    if (!url) return null;
+    let cleaned = url.trim();
+    cleaned = cleaned.replace(/[.,;:)\]\s]+$/, '');
+    if (!/^https?:\/\//i.test(cleaned)) {
+      cleaned = 'https://' + cleaned;
+    }
+    return cleaned;
+  }
+
   function detectContact(text) {
-    const email = text.match(/[\w.+-]+@[\w-]+\.[\w.]+/);
-    const phone = text.match(/(?:\+?\d{1,4}[\s\-]?)?(?:\(?\d{2,4}\)?[\s\-]?)?\d{3,4}[\s\-]?\d{3,4}/);
-    const linkedin = text.match(/(?:linkedin\.com\/in\/[\w-]+)/i);
+    const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.]+/);
+    const phoneMatch = text.match(/(?:\+?\d{1,4}[\s\-]?)?(?:\(?\d{2,4}\)?[\s\-]?)?\d{3,4}[\s\-]?\d{3,4}/);
+    const linkedinMatch = text.match(/(?:linkedin\.com\/in\/[\w.-]+)/i);
+    const githubMatch = text.match(/(?:github\.com\/[\w.-]+)/i);
+    const driveMatch = text.match(/(?:drive\.google\.com\/[^\s"'>]+)/i);
+    const behanceMatch = text.match(/(?:behance\.net\/[\w.-]+)/i);
+    const dribbbleMatch = text.match(/(?:dribbble\.com\/[\w.-]+)/i);
+    const githubIoMatch = text.match(/(?:[\w.-]+\.github\.io)/i);
+
+    let portfolio = null;
+    if (behanceMatch) {
+      portfolio = cleanUrl(behanceMatch[0]);
+    } else if (dribbbleMatch) {
+      portfolio = cleanUrl(dribbbleMatch[0]);
+    } else if (githubIoMatch) {
+      portfolio = cleanUrl(githubIoMatch[0]);
+    }
 
     return {
-      email: email ? email[0] : null,
-      phone: phone ? phone[0].trim() : null,
-      linkedin: linkedin ? 'https://' + linkedin[0] : null,
+      email: emailMatch ? emailMatch[0] : null,
+      phone: phoneMatch ? phoneMatch[0].trim() : null,
+      linkedin: linkedinMatch ? cleanUrl(linkedinMatch[0]) : null,
+      github: githubMatch ? cleanUrl(githubMatch[0]) : null,
+      drive: driveMatch ? cleanUrl(driveMatch[0]) : null,
+      portfolio: portfolio,
     };
   }
 
